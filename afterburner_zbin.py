@@ -373,7 +373,7 @@ for i in range(1,len(bins)):
 #nhi=n_mass[np.where(zmatch>0.35)]
 #mass=hod_mass(n_mass,params) #calculate mass given ngals (see above functions)
 #mass[np.where(zmatch<=0.35)]=hod_mass(nlow,lowz_params)
-mass.shape=ngals.shape
+#mass.shape=ngals.shape
 mass_density=mass/volume
 test=ngals[0]
 #print test.size
