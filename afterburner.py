@@ -45,8 +45,8 @@ magz=g_2.field('MAG_AUTO_Z')
 zmin=0.1
 zmax=1.0
 
-ra1=50
-ra2=100
+ra1=0
+ra2=50
 dec1=-60
 dec2=-40
 
@@ -57,8 +57,8 @@ c1=c[w]
 zmin=0.05
 zmax=1.1
 
-ra1=49
-ra2=101
+ra1=0
+ra2=51
 dec1=-61
 dec2=-39
 
@@ -206,6 +206,15 @@ for j in radii:
     #match cluster centers to surrounding galaxies
     m1,m2,adist=h.match(central_ra,central_dec,rag,decg,radius=degrees,maxmatch=50000)
     m1uniq=np.unique(m1)#find unique clusters (m1 has 1 cluster index for each matched galaxy)
+    if len(m1uniq)!=len(central_ra):
+        diff=np.diff(m1uniq)
+        ind=np.where(diff!=1)
+        ind=np.array(ind)
+        p=0
+        for i in ind:
+            addval=m1uniq[i+p]+1
+            insert_ind=i+p+1
+            m1uniq=np.insert(m1uniq,insert_ind,addval)
     clusterid=cluster_id[m1uniq]
     truez=central_z[m1uniq]
     truezerr=central_z_err[m1uniq]
@@ -274,8 +283,8 @@ print
 print 'Making R200/M200 measurements'
 
 #Msat redshift dependence
-def logMsat(z):
-    return 12.33 - 0.27*z
+def logMsat(z,M0=12.33,a=-0.27):
+    return M0 + a*z
 
 #Mass-richness relation functions (see Tinker et al 2011)
 def ncen(M,log_Mmin,sigma):
@@ -285,29 +294,33 @@ def ncen(M,log_Mmin,sigma):
 
 def ntot(M,Msat,log_Mmin,sigma,alpha_sat,Mcut):
     #takes logMmin, logSigma_logM, logMsat, logMcut from paper. Returns Ntotal=Ncentral+Nsatellite from paper
+    #Msat=logMsat(z,M0,a)
     Msat=10**Msat
     Mcut=10**Mcut
     #Msat_inverse=1./Msat
     #MdivMsat=np.outer(Msat_inverse,M)
     return ncen(M,log_Mmin,sigma)*(1+((M/Msat**alpha_sat)*np.exp(-Mcut/M)))
 
-def hod_mass(N,z,params):
+def hod_mass(N,params):
     #params: logMmin,logMsat,alphasat,logMcut,logsigmalogM directly from table 4 of paper
     Mmin=params[0]
-    sigma=params[4]
+    #M0=params[1]
+    #a=params[2]
     Msat=params[1]
     alpha=params[2]
     Mcut=params[3]
+    sigma=params[4]
     mass=np.linspace(1*10**7,2*10**17,1*10**6)
+    #ztest=np.linspace(0.05,1.1,1*10**4)
     m=interp1d(ntot(mass,Msat,Mmin,sigma,alpha,Mcut),mass)
     #xx,yy=np.meshgrid(mass,Msat)
-    #n_tot=ntot(mass,Msat,Mmin,sigma,alpha,Mcut)
+    #n_tot=ntot(mass,ztest,M0,a,Mmin,sigma,alpha,Mcut)
     #n_a=[]
     #for i in range(len(Msat)):
     #    m=interp1d(ntot(mass,Msat[i],Mmin,sigma,alpha,Mcut),mass)
     #    ni=m(N)
     #    n_a.append(ni)
-    #m=interp2d(mass,Msat,n_tot,kind='cubic')
+    #m=interp2d(n_tot,ztest,mass)
     n=m(N)
     #n_a=np.array(n_a)
     #n=np.diagonal(n_a)
@@ -315,12 +328,38 @@ def hod_mass(N,z,params):
 
 
 
-params=[11.6,12.45,1.0,12.25,-0.69] #parameters for mass conversion - see table 4 in Tinker paper
+
+'''
+def bins(data,num):
+    d=np.sort(data)
+    inds=np.argsort(data)
+    bins=np.array_split(d,num)
+    bin_indices=np.array_split(inds,num)
+    return bins,bin_indices
+
+num=10
+zbins,zinds=bins(z,num)
+'''
+#bins=np.linspace(0.1,0.9,10)
+#bin_inds=np.digitize(z,bins)
 
 ngals=np.array(ngals)
-#lambda_ngals=np.array(lambda_ngals)
 density=np.array(density)
 volume=np.array(vols)
+
+#full_bin_inds=np.array([bin_inds,]*30)
+
+params=[11.6,12.45,1.0,12.25,-0.69]
+#param_0=[11.6,12.,0.85,12.25,-0.69] #parameters for mass conversion - see table 4 in Tinker paper
+#params=np.array([param_0,]*len(bins))
+#for i in range(1,len(bins)):
+#    zrange=np.array([bins[i-1],bins[i]])
+#    zmid=(np.median(zrange))
+#    msat=logMsat(zmid)
+#    params[i][1]=msat
+
+
+
 #zmatch=np.array([z,]*30)
 n_mass=np.concatenate(ngals)
 #z_mass=np.concatenate(zmatch)
@@ -332,6 +371,14 @@ for i in n_mass:  #set minimum value for mass conversions to prevent code from f
         t.append(0.9)
 
 n_mass=np.array(t)
+#n_mass.shape=ngals.shape
+#mass=np.zeros_like(n_mass)
+
+#for i in range(1,len(bins)):
+#    ntemp=n_mass[np.where(full_bin_inds==i)]
+#    mass_i=hod_mass(ntemp,params[i-1])
+#    mass[np.where(full_bin_inds==i)]=mass_i
+
 #nlow=n_mass[np.where(zmatch<=0.35)]
 #nhi=n_mass[np.where(zmatch>0.35)]
 mass=hod_mass(n_mass,params) #calculate mass given ngals (see above functions)
@@ -875,6 +922,146 @@ def gmmfit(band1,band2,expcol,distlim=0.05,n_components=3,tol=0.0000001,galaxyID
     converged=np.array(converged)
     return slope,yint,mu_r,mu_b,mu_bg,sigma_r,sigma_b,sigma_bg,alpha_r,alpha_b,alpha_bg,Pred,Pblue,Pbg,probgalid,converged
  
+
+
+def gmm_restframe(color,band2,expcol,distlim=0.05,n_components=3,tol=0.0000001,galaxyID=galaxyID,
+           hostID=hostID,P_radial=P_radial,P_redshift=P_redshift):
+#for g-r, band1=galmagG, band2=galmagR
+    Pdist=P_radial*P_redshift
+    gmm=mixture.GMM(n_components=n_components,tol=tol,n_iter=500)
+    slope=[]
+    yint=[]
+    mu_r=[]
+    mu_b=[]
+    mu_bg=[]
+    sigma_r=[]
+    sigma_b=[]
+    sigma_bg=[]
+    alpha_r=[]
+    alpha_b=[]
+    alpha_bg=[]
+    Pred=[]
+    Pblue=[]
+    Pbg=[]
+    probgalid=[]
+    converged=[]
+    for x in cluster_ID:
+        glxid=galaxyID[np.where((hostID==x)&(Pdist>=distlim))]
+        #magg1=band1[np.where((hostID==x)&(Pdist>=distlim))]
+        magr1=band2[np.where((hostID==x)&(Pdist>=distlim))]
+        rprob1=P_radial[np.where((hostID==x)&(Pdist>=distlim))]
+        zprob1=P_redshift[np.where((hostID==x)&(Pdist>=distlim))]
+        distprob=rprob1*zprob1
+        gr1=color[np.where((hostID==x)&(Pdist>=distlim))]
+#        find expected RS color
+        zcl=cluster_Z[np.where(cluster_ID==x)]
+        qpt=zip(zcl,np.zeros_like(zcl))
+        d,ind=tree.query(qpt)
+        expred=expcol[ind]
+        if len(glxid) > 1:
+            gr1.shape=(len(gr1),1)
+            distprob.shape=(len(distprob),1)
+            fit=gmm.fit(gr1,data_weights=distprob)
+            conv=gmm.converged_
+            converged.append(conv)
+            mu=gmm.means_
+            mu.shape=(len(mu),)
+            alpha=gmm.weights_
+            alpha.shape=(len(alpha),)
+            covars=gmm.covars_
+            sigma=np.sqrt(covars)
+            sigma.shape=(len(sigma),)
+            mudif=np.abs(mu-expred)
+            red=np.where(mudif==min(mudif))
+            blualph=np.delete(alpha,red)
+            blue=np.where(alpha==max(blualph))
+            background=np.where(alpha==min(blualph))
+            alphar=alpha[red]
+            alphabg=alpha[background]
+            if alphar<0.1: #arbitrarily set, maybe play with this at some point
+                if alphabg>alphar:
+                    temp=red
+                    red=background
+                    background=temp
+            mur=mu[red]
+            mub=mu[blue]
+            if mur<mub:
+                temp=red
+                red=blue
+                blue=temp
+            mur=mu[red]
+            mub=mu[blue]
+            mubg=mu[background]
+            sigr=sigma[red]
+            sigb=sigma[blue]
+            sigbg=sigma[background]
+            alphar=alpha[red]
+            alphab=alpha[blue]
+            alphabg=alpha[background]
+#
+            mu_r.append(mur)
+            mu_b.append(mub)
+            mu_bg.append(mubg)
+            sigma_r.append(sigr)
+            sigma_b.append(sigb)
+            sigma_bg.append(sigbg)
+            alpha_r.append(alphar)
+            alpha_b.append(alphab)
+            alpha_bg.append(alphabg)
+            exr=-((gr1-mur)**2)/(2*(sigr**2))
+            exb=-((gr1-mub)**2)/(2*(sigb**2))
+            exbg=-((gr1-mubg)**2)/(2*(sigbg**2))
+            p_red=(1/(sigr*np.sqrt(2*np.pi)))*np.exp(exr)
+            p_blue=(1/(sigb*np.sqrt(2*np.pi)))*np.exp(exb)
+            p_bg=(1/(sigbg*np.sqrt(2*np.pi)))*np.exp(exbg)
+            maxLred=(1/(sigr*np.sqrt(2*np.pi)))
+            maxLblue=(1/(sigb*np.sqrt(2*np.pi)))
+            Pred.append(p_red/maxLred)
+            Pblue.append(p_blue/maxLblue)
+            probgalid.append(glxid)
+            magr1.shape=(len(magr1),)
+            gr1.shape=(len(gr1),)
+            weights=distprob*p_red#*(1-p_blue)
+            weights.shape=(len(weights),)
+            rfit,info=np.polynomial.polynomial.polyfit(magr1,gr1,deg=1,w=weights,full=True)
+            rfit.shape=(2,)
+            slope.append(rfit[1])
+            yint.append(rfit[0])
+#            bf=alphab/(alphar+alphab)
+#            if zcl>0.3 and zcl<=0.4 and mur<1.3:
+#                fig=plt.figure()
+#                fig.add_subplot(111)
+#                plt.hist(gr1,facecolor='g',alpha=0.3,normed=True,bins=45,range=(-1,4))
+#                plt.plot(y,mlab.normpdf(y,mur,sigr)*alphar,'r-')
+#                plt.plot(y,mlab.normpdf(y,mub,sigb)*alphab,'b-')
+#                plt.plot(y,mlab.normpdf(y,mubg,sigbg)*alphabg,'k-')
+#                plt.title('z='+str(zcl))
+#                plt.xlabel('r-i')
+#                plt.show()
+#                plt.close(fig)
+#            chisq=info[0]
+#            dof=len(redr)
+#            redchisq=chisq/dof
+    slope=np.array((slope))
+    yint=np.array((yint))
+    mu_r=np.array((mu_r))
+    mu_b=np.array((mu_b))
+    mu_bg=np.array((mu_bg))
+    sigma_r=np.array((sigma_r))
+    sigma_b=np.array((sigma_b))
+    sigma_bg=np.array((sigma_bg))
+    alpha_r=np.array((alpha_r))
+    alpha_b=np.array((alpha_b))
+    alpha_bg=np.array((alpha_bg))
+    Pred=np.array(Pred)
+    Pblue=np.array(Pblue)
+    Pbg=np.array(Pbg)
+    probgalid=np.array(probgalid)
+    converged=np.array(converged)
+    return slope,yint,mu_r,mu_b,mu_bg,sigma_r,sigma_b,sigma_bg,alpha_r,alpha_b,alpha_bg,Pred,Pblue,Pbg,probgalid,converged
+ 
+
+
 cluster_Z=np.array(cluster_Z)
 
 grinfo=gmmfit(galmagG,galmagR,jimgr)
@@ -934,6 +1121,26 @@ izPblue=izinfo[12]
 izPbg=izinfo[13]
 izprobgalid=izinfo[14]
 izconverged=izinfo[15]
+
+
+restgr=gmm_restframe(galgr0,galmagR,jimgr)
+
+restslope=restgr[0]
+restyint=restgr[1]
+restmu_r=restgr[2]
+restmu_b=restgr[3]
+restmu_bg=restgr[4]
+restsigma_r=restgr[5]
+restsigma_b=restgr[6]
+restsigma_bg=restgr[7]
+restalpha_r=restgr[8]
+restalpha_b=restgr[9]
+restalpha_bg=restgr[10]
+restPred=restgr[11]
+restPblue=restgr[12]
+restPbg=restgr[13]
+restprobgalid=restgr[14]
+restconverged=restgr[15]
 
 
 #three gaussian testing site
@@ -1210,6 +1417,7 @@ galmagI2=galmagI[w]
 galmagZ2=galmagZ[w]
 prad2=P_radial[w]
 pz2=P_redshift[w]
+galgr02=galgr0[w]
 
 #izgalid2=np.array([item for sublist in izprobgalid for item in sublist])
 
@@ -1239,6 +1447,15 @@ izpc2.shape=(izpc2.size,)
 izPred=np.array([item for sublist in izPred for item in sublist])
 izPblue=np.array([item for sublist in izPblue for item in sublist])
 izPbg=np.array([item for sublist in izPbg for item in sublist])
+
+restalpha_r.shape=(restalpha_r.size,)
+restalpha_b.shape=(restalpha_b.size,)
+restPcolor=(restalpha_r*restPred)+(restalpha_b*restPblue)
+restpc2=np.array([item for sublist in restPcolor for item in sublist])
+restpc2.shape=(restpc2.size,)
+restPred=np.array([item for sublist in restPred for item in sublist])
+restPblue=np.array([item for sublist in restPblue for item in sublist])
+restPbg=np.array([item for sublist in restPbg for item in sublist])
 
 
 duplicates=[item for item, count in Counter(galid2).iteritems() if count>1]
@@ -1391,6 +1608,7 @@ else:
 grPmemb=grpc2*prad2*pz2
 riPmemb=ripc2*prad2*pz2
 izPmemb=izpc2*prad2*pz2
+restPmemb=restpc2*prad2*pz2
 
 print 'writing member file'
 
@@ -1423,11 +1641,18 @@ col26=pyfits.Column(name='RIP_BG',format='E',array=riPbg)
 col27=pyfits.Column(name='IZP_RED',format='E',array=izPred)
 col28=pyfits.Column(name='IZP_BLUE',format='E',array=izPblue)
 col29=pyfits.Column(name='IZP_BG',format='E',array=izPbg)
+col30=pyfits.Column(name='RESTP_RED',format='E',array=restPred)
+col31=pyfits.Column(name='RESTP_BLUE',format='E',array=restPblue)
+col32=pyfits.Column(name='RESTP_BG',format='E',array=restPbg)
+col33=pyfits.Column(name='REST_P_COLOR',format='E',array=restpc2)
+col34=pyfits.Column(name='REST_P_MEMBER',format='E',array=restPmemb)
 
 
-cols=pyfits.ColDefs([col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28,col29])
+
+cols=pyfits.ColDefs([col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28,col29,col30,col31,col32,col33,col34])
+#cols=pyfits.ColDefs([col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col16,col19,col20,col21,col22,col23])
 tbhdu=pyfits.BinTableHDU.from_columns(cols)
-tbhdu.writeto('gold_redmapper_v6.4.11_full_newmembers_v2.fit',clobber=True)
+tbhdu.writeto('gold_A2_redmapper_v6.4.11_full_newmembers_v1.fit',clobber=True)
 
 print 'writing cluster file'
 
@@ -1443,10 +1668,12 @@ cluster_Z=np.array(cluster_Z)
 grsep=(grmu_r-grmu_b)/grsigma_r
 risep=(rimu_r-rimu_b)/risigma_r
 izsep=(izmu_r-izmu_b)/izsigma_r
+restsep=(restmu_r-restmu_b)/restsigma_r
 
 grw=np.where(grsep>=1.2)
 riw=np.where(risep>=1.2)
 izw=np.where(izsep>=1.2)
+restw=np.where(restsep>=1.2)
 
 grflag=np.zeros_like(grmu_r)
 grflag[grw]=1
@@ -1454,6 +1681,8 @@ riflag=np.zeros_like(rimu_r)
 riflag[riw]=1
 izflag=np.zeros_like(izmu_r)
 izflag[izw]=1
+restflag=np.zeros_like(restmu_r)
+restflag[restw]=1
 
 
 col1=pyfits.Column(name='MEM_MATCH_ID',format='J',array=cluster_ID)
@@ -1463,53 +1692,61 @@ col4=pyfits.Column(name='Z',format='E',array=cluster_Z)
 col5=pyfits.Column(name='R200',format='E',array=R200)
 col6=pyfits.Column(name='M200',format='E',array=M200)
 col7=pyfits.Column(name='N200',format='E',array=N200)
-col8=pyfits.Column(name='Nback',format='E',array=N_background)
-col9=pyfits.Column(name="LAMBDA_CHISQ",format='E',array=lambda_ngals)
-col10=pyfits.Column(name="LAMBDA_R",format='E',array=R_lambda)
-col11=pyfits.Column(name='GR_SLOPE',format='E',array=grslope)
-col12=pyfits.Column(name='GR_INTERCEPT',format='E',array=gryint)
-col13=pyfits.Column(name='GRMU_R',format='E',array=grmu_r)
-col14=pyfits.Column(name='GRMU_B',format='E',array=grmu_b)
-col15=pyfits.Column(name='GRSIGMA_R',format='E',array=grsigma_r)
-col16=pyfits.Column(name='GRSIGMA_B',format='E',array=grsigma_b)
-col17=pyfits.Column(name='GRW_R',format='E',array=gralpha_r)
-col18=pyfits.Column(name='GRW_B',format='E',array=gralpha_b)
-col19=pyfits.Column(name='RI_SLOPE',format='E',array=rislope)
-col20=pyfits.Column(name='RI_INTERCEPT',format='E',array=riyint)
-col21=pyfits.Column(name='RIMU_R',format='E',array=rimu_r)
-col22=pyfits.Column(name='RIMU_B',format='E',array=rimu_b)
-col23=pyfits.Column(name='RISIGMA_R',format='E',array=risigma_r)
-col24=pyfits.Column(name='RISIGMA_B',format='E',array=risigma_b)
-col25=pyfits.Column(name='RIW_R',format='E',array=rialpha_r)
-col26=pyfits.Column(name='RIW_B',format='E',array=rialpha_b)
-col27=pyfits.Column(name='GRMU_BG',format='E',array=grmu_bg)
-col28=pyfits.Column(name='GRSIGMA_BG',format='E',array=grsigma_bg)
-col29=pyfits.Column(name='GRW_BG',format='E',array=gralpha_bg)
-col30=pyfits.Column(name='GR_CONVERGED',format='E',array=grconverged)
-col31=pyfits.Column(name='RIMU_BG',format='E',array=rimu_bg)
-col32=pyfits.Column(name='RISIGMA_BG',format='E',array=risigma_bg)
-col33=pyfits.Column(name='RIW_BG',format='E',array=rialpha_bg)
-col34=pyfits.Column(name='RI_CONVERGED',format='E',array=riconverged)
-col35=pyfits.Column(name='IZ_SLOPE',format='E',array=izslope)
-col36=pyfits.Column(name='IZ_INTERCEPT',format='E',array=izyint)
-col37=pyfits.Column(name='IZMU_R',format='E',array=izmu_r)
-col38=pyfits.Column(name='IZMU_B',format='E',array=izmu_b)
-col39=pyfits.Column(name='IZSIGMA_R',format='E',array=izsigma_r)
-col40=pyfits.Column(name='IZSIGMA_B',format='E',array=izsigma_b)
-col41=pyfits.Column(name='IZW_R',format='E',array=izalpha_r)
-col42=pyfits.Column(name='IZW_B',format='E',array=izalpha_b)
-col43=pyfits.Column(name='IZMU_BG',format='E',array=izmu_bg)
-col44=pyfits.Column(name='IZSIGMA_BG',format='E',array=izsigma_bg)
-col45=pyfits.Column(name='IZW_BG',format='E',array=izalpha_bg)
-col46=pyfits.Column(name='IZ_CONVERGED',format='E',array=izconverged)
-col47=pyfits.Column(name='GR_SEP_FLAG',format='L',array=grflag)
-col48=pyfits.Column(name='RI_SEP_FLAG',format='L',array=riflag)
-col49=pyfits.Column(name='IZ_SEP_FLAG',format='L',array=izflag)
+col8=pyfits.Column(name="LAMBDA_CHISQ",format='E',array=lambda_ngals)
+col9=pyfits.Column(name='GR_SLOPE',format='E',array=grslope)
+col10=pyfits.Column(name='GR_INTERCEPT',format='E',array=gryint)
+col11=pyfits.Column(name='GRMU_R',format='E',array=grmu_r)
+col12=pyfits.Column(name='GRMU_B',format='E',array=grmu_b)
+col13=pyfits.Column(name='GRSIGMA_R',format='E',array=grsigma_r)
+col14=pyfits.Column(name='GRSIGMA_B',format='E',array=grsigma_b)
+col15=pyfits.Column(name='GRW_R',format='E',array=gralpha_r)
+col16=pyfits.Column(name='GRW_B',format='E',array=gralpha_b)
+col17=pyfits.Column(name='RI_SLOPE',format='E',array=rislope)
+col18=pyfits.Column(name='RI_INTERCEPT',format='E',array=riyint)
+col19=pyfits.Column(name='RIMU_R',format='E',array=rimu_r)
+col20=pyfits.Column(name='RIMU_B',format='E',array=rimu_b)
+col21=pyfits.Column(name='RISIGMA_R',format='E',array=risigma_r)
+col22=pyfits.Column(name='RISIGMA_B',format='E',array=risigma_b)
+col23=pyfits.Column(name='RIW_R',format='E',array=rialpha_r)
+col24=pyfits.Column(name='RIW_B',format='E',array=rialpha_b)
+col25=pyfits.Column(name='GRMU_BG',format='E',array=grmu_bg)
+col26=pyfits.Column(name='GRSIGMA_BG',format='E',array=grsigma_bg)
+col27=pyfits.Column(name='GRW_BG',format='E',array=gralpha_bg)
+col28=pyfits.Column(name='RIMU_BG',format='E',array=rimu_bg)
+col29=pyfits.Column(name='RISIGMA_BG',format='E',array=risigma_bg)
+col30=pyfits.Column(name='RIW_BG',format='E',array=rialpha_bg)
+col31=pyfits.Column(name='IZ_SLOPE',format='E',array=izslope)
+col32=pyfits.Column(name='IZ_INTERCEPT',format='E',array=izyint)
+col33=pyfits.Column(name='IZMU_R',format='E',array=izmu_r)
+col34=pyfits.Column(name='IZMU_B',format='E',array=izmu_b)
+col35=pyfits.Column(name='IZSIGMA_R',format='E',array=izsigma_r)
+col36=pyfits.Column(name='IZSIGMA_B',format='E',array=izsigma_b)
+col37=pyfits.Column(name='IZW_R',format='E',array=izalpha_r)
+col38=pyfits.Column(name='IZW_B',format='E',array=izalpha_b)
+col39=pyfits.Column(name='IZMU_BG',format='E',array=izmu_bg)
+col40=pyfits.Column(name='IZSIGMA_BG',format='E',array=izsigma_bg)
+col41=pyfits.Column(name='IZW_BG',format='E',array=izalpha_bg)
+col42=pyfits.Column(name='GR_SEP_FLAG',format='L',array=grflag)
+col43=pyfits.Column(name='RI_SEP_FLAG',format='L',array=riflag)
+col44=pyfits.Column(name='IZ_SEP_FLAG',format='L',array=izflag)
+col45=pyfits.Column(name='REST_SLOPE',format='E',array=restslope)
+col46=pyfits.Column(name='REST_INTERCEPT',format='E',array=restyint)
+col47=pyfits.Column(name='RESTMU_R',format='E',array=restmu_r)
+col48=pyfits.Column(name='RESTMU_B',format='E',array=restmu_b)
+col49=pyfits.Column(name='RESTMU_BG',format='E',array=restmu_bg)
+col50=pyfits.Column(name='RESTSIGMA_R',format='E',array=restsigma_r)
+col51=pyfits.Column(name='RESTSIGMA_B',format='E',array=restsigma_b)
+col52=pyfits.Column(name='RESTSIGMA_BG',format='E',array=restsigma_bg)
+col53=pyfits.Column(name='RESTW_R',format='E',array=restalpha_r)
+col54=pyfits.Column(name='RESTW_B',format='E',array=restalpha_b)
+col55=pyfits.Column(name='RESTW_BG',format='E',array=restalpha_bg)
+col56=pyfits.Column(name='REST_SEP_FLAG',format='L',array=restflag)
 
 
-cols=pyfits.ColDefs([col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28,col29,col30,col31,col32,col33,col34,col35,col36,col37,col38,col39,col40,col41,col42,col43,col44,col45,col46,col47,col48,col49])
+cols=pyfits.ColDefs([col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,col21,col22,col23,col24,col25,col26,col27,col28,col29,col30,col31,col32,col33,col34,col35,col36,col37,col38,col39,col40,col41,col42,col43,col44,col45,col46,col47,col48,col49,col50,col51,col52,col53,col54,col55,col56])
+#cols=pyfits.ColDefs([col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11,col12,col13,col14,col15,col16,col17,col18,col27,col28,col29,col30,col47])
 tbhdu=pyfits.BinTableHDU.from_columns(cols)
-tbhdu.writeto('gold_redmapper_v6.4.11_full_clusterR200_v2.fit',clobber=True)
+tbhdu.writeto('gold_A2_redmapper_v6.4.11_full_clusterR200_v1.fit',clobber=True)
 
 
 
