@@ -16,14 +16,16 @@ from collections import Counter
 
 ###FILE INFO###
 #inputs
-indir='/data/des30.a/data/bwelch/redmapper_y1a1/'
-clusterfile=indir+'redmapper_v6.4.11_full.fits'
-galfile=indir+'y1a1_gold_BPZ_mof_gals_cut_allcolumns.fits'
-colorfile=indir+'red_galaxy_El1_COSMOS_DES_filters.txt'
+cluster_indir='/data/des30.a/data/bwelch/xray_clusters/'
+gal_indir='/data/des30.a/data/bwelch/redmapper_y1a1/'
+color_indir='/data/des30.a/data/bwelch/redmapper_y1a1/'
+clusterfile=cluster_indir+'Chandra_Y1A1-6.4.16-Feb-26-2017-prelim.fits'
+galfile=gal_indir+'y1a1_gold_BPZ_mof_gals_cut_allcolumns.fits'
+colorfile=color_indir+'red_galaxy_El1_COSMOS_DES_filters.txt'
 #outputs
-outdir='/data/des30.a/data/bwelch/'
-cluster_outfile=outdir+'test.fit'
-member_outfile=outdir+'test.fit'
+outdir='/data/des30.a/data/bwelch/xray_clusters'
+cluster_outfile=outdir+'bpz_mof_chandra_prelim_clusters.fit'
+member_outfile=outdir+'bpz_mof_chandra_prelim_members.fit'
 print 'Output Directory:',outdir
 
 #read in data
@@ -37,10 +39,10 @@ g=g[1].data
 #desdmphotoz->bpz for new photoz's
 #g_3=pyfits.getdata('y1a1_gold_bpz_Mr.fits')
 
-rac=c.field('RA')
-decc=c.field('DEC')
-z=c.field('Z_LAMBDA')
-ngals=c.field('LAMBDA_CHISQ')
+rac=c.field('r500_ra')
+decc=c.field('r500_dec')
+z=c.field('redshift')
+#ngals=c.field('LAMBDA_CHISQ')
 rag1=g.field('RA')
 decg1=g.field('DEC')
 zg1=g.field('MEDIAN_Z')
@@ -57,21 +59,21 @@ magz=g.field('MAG_AUTO_Z')
 zmin=0.1
 zmax=1.0
 
-ra1=90
-ra2=100
-dec1=-50
-dec2=-40
+ra1=0
+ra2=360
+dec1=-60
+dec2=3
 
-w, = np.where((z>zmin) & (z<zmax) & (rac>ra1) & (rac<ra2) & (decc>dec1) & (decc<dec2) & (ngals!=0))
+w, = np.where((z>zmin) & (z<zmax) & (rac>ra1) & (rac<ra2) & (decc>dec1) & (decc<dec2) )#& (ngals!=0))
 c1=c[w]
 
 zmin=0.05
 zmax=1.1
 
-ra1=89
-ra2=101
-dec1=-51
-dec2=-39
+ra1=0
+ra2=361
+dec1=-61
+dec2=4
 
 #'crazy color' cut - don't use galaxies with colors less than -1 or greater than 4
 crazy1=-1
@@ -90,12 +92,12 @@ g1=g[w]
 print 'total clusters: ',len(c1)
 print 'total galaxies: ',len(g1)
 
-rac=c1.field('RA')
-decc=c1.field('DEC')
-z=c1.field('Z_LAMBDA')
-NGALS=c1.field('LAMBDA_CHISQ')
-lambda_r=c1.field('R_LAMBDA')
-maskfrac=c1.field('MASKFRAC')
+rac=c1.field('r500_ra')
+decc=c1.field('r500_dec')
+z=c1.field('redshift')
+#NGALS=c1.field('LAMBDA_CHISQ')
+#lambda_r=c1.field('R_LAMBDA')
+#maskfrac=c1.field('MASKFRAC')
 cid=c1.field('MEM_MATCH_ID')
 rag=g1.field('RA')
 decg=g1.field('DEC')
@@ -198,7 +200,7 @@ for j in radii:
     if len(m1uniq)!=len(central_ra):
         diff=np.diff(m1uniq)
         ind=np.where(diff!=1)
-        ind=np.array(ind)
+        ind=np.array(ind[0])
         for i in ind:
             p=0
             while p<diff[i]-1:
