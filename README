@@ -5,6 +5,12 @@ as well as descriptions of the outputs of the code.
 
 INSTRUCTIONS:
 
+Step 0) Set up correct python packages
+
+I modified the sklearn python package to be able to do Gaussian 
+Mixture Modeling with weighted data points. To have python use the 
+modified version, source the gmmsetups.sh file in this directory.
+
 Step 1) Provide input files
 
 The code takes three input files, and it is currently set up to look 
