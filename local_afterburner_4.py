@@ -37,7 +37,7 @@ def nike(a,b) :
     ###FILE INFO###
     #inputs
     dataset='redmapper'
-    p_lim=0.05
+    p_lim=0.0
     
     if dataset=='redmapper':
         cluster_indir='/data/des41.a/data/marcelle/clusters/data/'
@@ -58,9 +58,9 @@ def nike(a,b) :
     #outputs
         outdir='/data/des41.a/data/bwelch/clusters/mocks'
         #cluster_outfile=outdir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test05_clusters.fit'
-        cluster_outfile='test_c.fit'
+        cluster_outfile='800_904_marcelle_params_clusters.fit'
         #member_outfile=outdir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test05_members.fit'
-        member_outfile='test_m.fit'
+        member_outfile='800_904_marcelle_params_members.fit'
         #print 'Output Directory:',outdir
      
     #read in data
@@ -307,7 +307,7 @@ def nike(a,b) :
     
     indices_into_galaxies,indices_into_clusters=annulus_match(rac,decc,ang_diam_dist,rag,decg,r_in=4.,r_out=6.)
     
-    data=make_annuli_quantities(indices_into_galaxies,indices_into_clusters,rag,decg,zg,zgerr,magg,magr,magi,magz,gr0)
+    data=make_annuli_quantities(indices_into_galaxies,indices_into_clusters,rag,decg,zg,zgerr,magg,magr,magi,magz)
     
     gmag=data['gmag']
     rmag=data['rmag']
@@ -697,10 +697,9 @@ def nike(a,b) :
     z_gal=data['zg']
     z_gal_err=data['zgerr']
     host_id=data['host_id']
-    gr0_bg=data['gr0']
     
     
-    gr_hists,ri_hists,iz_hists,rest_hists=local_bg_histograms(ang_diam_dist,R200_measure,4.,6.,host_id,gmag,rmag,imag,zmag,gr0_bg,bg_probz,n_total,bg_total,constants)
+    gr_hists,ri_hists,iz_hists=local_bg_histograms(ang_diam_dist,R200_measure,4.,6.,host_id,gmag,rmag,imag,zmag,bg_probz,n_total,bg_total,constants)
     
     
     print 
@@ -720,7 +719,6 @@ def nike(a,b) :
     interp_gr=interp1d(jimz,jimgr)
     interp_ri=interp1d(jimz,jimri)
     interp_iz=interp1d(jimz,jimiz)
-    interp_rest=interp1d(jimz,jimgr[0]*np.ones_like(jimgr))
     #treedata=zip(jimz,np.zeros_like(jimz))
     #tree=spatial.KDTree(treedata)
     
@@ -761,7 +759,7 @@ def nike(a,b) :
     gralpha_bg=grinfo[10]
     grPred=grinfo[11]
     grPblue=grinfo[12]
-    grPbg=grinfo[13]
+    grPcolor=grinfo[13]
     grprobgalid=grinfo[14]
     grconverged=grinfo[15]
     gr_bghist=grinfo[16]
@@ -792,7 +790,7 @@ def nike(a,b) :
     rialpha_bg=riinfo[10]
     riPred=riinfo[11]
     riPblue=riinfo[12]
-    riPbg=riinfo[13]
+    riPcolor=riinfo[13]
     riprobgalid=riinfo[14]
     riconverged=riinfo[15]
     ri_bghist=riinfo[16]
@@ -817,7 +815,7 @@ def nike(a,b) :
     izalpha_bg=izinfo[10]
     izPred=izinfo[11]
     izPblue=izinfo[12]
-    izPbg=izinfo[13]
+    izPcolor=izinfo[13]
     izprobgalid=izinfo[14]
     izconverged=izinfo[15]
     iz_bghist=izinfo[16]
@@ -829,30 +827,6 @@ def nike(a,b) :
     #print 'i-z p012345'
     #print izp
     
-    '''
-    restgr=gmm_restframe(galgr0,galmagR,jimgr)
-    
-    restslope=restgr[0]
-    restyint=restgr[1]
-    restmu_r=restgr[2]
-    restmu_b=restgr[3]
-    restmu_bg=restgr[4]
-    restsigma_r=restgr[5]
-    restsigma_b=restgr[6]
-    restsigma_bg=restgr[7]
-    restalpha_r=restgr[8]
-    restalpha_b=restgr[9]
-    restalpha_bg=restgr[10]
-    restPred=restgr[11]
-    restPblue=restgr[12]
-    restPbg=restgr[13]
-    restprobgalid=restgr[14]
-    restconverged=restgr[15]
-    restp=restgr[16]
-    print 'rest p012345'
-    print restp
-    '''
-
 
     #Make cuts for galaxy membership probabilities 
     w=np.where(Pdist>=p_lim)
@@ -925,19 +899,7 @@ def nike(a,b) :
     izPblue.shape=(izPblue.size,)
     #izPbg=np.array([item for sublist in izPbg for item in sublist])
     #izPbg.shape=(izPbg.size,)
-    '''
-    restalpha_r.shape=(restalpha_r.size,)
-    restalpha_b.shape=(restalpha_b.size,)
-    restPcolor=(restalpha_r*restPred)+(restalpha_b*restPblue)
-    restpc2=np.array([item for sublist in restPcolor for item in sublist])
-    restpc2.shape=(restpc2.size,)
-    restPred=np.array([item for sublist in restPred for item in sublist])
-    restPred.shape=(restPred.size,)
-    restPblue=np.array([item for sublist in restPblue for item in sublist])
-    restPblue.shape=(restPblue.size,)
-    restPbg=np.array([item for sublist in restPbg for item in sublist])
-    restPbg.shape=(restPbg.size,)
-    '''
+
     
     #assign host cluster redshift to each member galaxy
     zclust=zg[w]
@@ -1111,6 +1073,204 @@ def nike(a,b) :
     
     
   
+
+def nike_rf(a,b) :
+    bb=b-1
+
+    ###FILE INFO###
+    #inputs
+    dataset='redmapper'
+    p_lim=0.00
+    
+    if dataset=='redmapper':
+        cluster_indir='/data/des41.a/data/marcelle/clusters/data/'
+        gal_indir='/data/des30.a/data/bwelch/redmapper_y1a1/'
+        color_indir='/data/des30.a/data/bwelch/redmapper_y1a1/'
+        clusterfile=cluster_indir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test04_clusters.fit'
+        galfile=gal_indir+'subsample_RA3545_DEC5548_test04_restframe_colors.fit'
+        colorfile=color_indir+'red_galaxy_El1_COSMOS_DES_filters.txt'
+    
+    #outputs
+        outdir='/data/des30.a/data/bwelch/redmapper_y1a1/restframe/'
+        cluster_outfile=outdir+'marcelle_subsample_restframe_clusters.fit'
+        member_outfile=outdir+'marcelle_subsample_restframe_members.fit'
+     
+    #read in data
+        print 'Getting Data'
+        c=pyfits.open(clusterfile)
+        c=c[1].data
+        g=pyfits.open(galfile)
+        g=g[1].data
+     
+        z=c.field('z')
+        rac=c['ra']
+        decc=c['dec']
+        cid=c['mem_match_id']
+
+        zg1=g.field('z')
+        galid=g['id']
+    
+    #make cuts
+        new_rac=rac
+        iy=np.argsort(new_rac)
+        new_rac=new_rac[iy][a:b]
+        new_decc=decc[iy][a:b]
+
+        zmin=0.1
+        zmax=1.0
+     
+        ra1=new_rac.min()
+        ra2=new_rac.max()
+        dec1=new_decc.min()
+        dec2=new_decc.max()
+        
+        w, = np.where((z>zmin) & (z<zmax) & (rac>=ra1) & (rac<=ra2) & (decc>=dec1) & (decc<=dec2))
+        c1=c[w]
+        rac=c1.field('ra')
+        decc=c1.field('dec')
+        cid=c1['mem_match_id']
+        
+        hostid=g['mem_match_id']
+        w=np.where(np.in1d(hostid,cid))
+        g1=g[w]
+     
+        print 'total clusters: ',len(c1)
+        print 'total galaxies: ',len(g1)
+     
+        z=c1.field('z')
+        cid=c1.field('MEM_MATCH_ID')
+        R200_measure=c['R200']
+
+        zg=g1.field('ZP')
+        galid=g1.field('COADD_OBJECTS_ID')
+        hostID=g1['host_haloid']
+        magg=g1.field('MAG_AUTO_G')
+        magr=g1.field('MAG_AUTO_R')
+        magi=g1.field('MAG_AUTO_I')
+        magz=g1.field('MAG_AUTO_Z')
+        magerr_g=g1['MAGERR_AUTO_G']
+        magerr_r=g1['MAGERR_AUTO_R']
+        magerr_i=g1['MAGERR_AUTO_I']
+        magerr_z=g1['MAGERR_AUTO_Z']
+        gr0=g1.field('gr_o')
+        gr_pmem=g1['gr_p_member_2']
+        ri_pmem=g1['ri_p_member_2']
+        iz_pmem=g1['iz_p_member_2']
+        P_radial=g['p_radial']
+        P_redshift=g['p_redshift']
+        
+        
+    print 
+    print 'calculating GMM probabilities'
+    
+    
+    #pull expected color vs redshift data
+    annis=np.loadtxt(colorfile)
+    jimz=[i[0] for i in annis]
+    jimgr=[i[2] for  i in annis]
+    
+    jimgr=np.array(jimgr)+0.2
+    
+    interp_rest=interp1d(jimz,jimgr[0]*np.ones_like(jimgr))
+    
+    hist_bins=np.arange(-1,4.1,0.1)
+    
+    P_mem=(gr_pmem+ri_pmem+iz_pmem)/3.
+    
+    restinfo=gmmfit(gr0,magr,interp_rest,None,R200_measure,4.,cid,z,galid,hostID,P_mem,0.)
+    
+    restslope=restinfo[0]
+    restyint=restinfo[1]
+    restmu_r=restinfo[2]
+    restmu_b=restinfo[3]
+    restmu_bg=restinfo[4]
+    restsigma_r=restinfo[5]
+    restsigma_b=restinfo[6]
+    restsigma_bg=restinfo[7]
+    restalpha_r=restinfo[8]
+    restalpha_b=restinfo[9]
+    restalpha_bg=restinfo[10]
+    restPred=restinfo[11]
+    restPblue=restinfo[12]
+    restPcolor=restinfo[13]
+    restprobgalid=restinfo[14]
+    restconverged=restinfo[15]
+    rest_bghist=restinfo[16]
+    rest_bghist_counts=rest_bghist[0]
+    rest_n_background=sum(rest_bghist_counts)
+    rest_n_subtracted=restinfo[19]
+
+
+    #Make cuts for galaxy membership probabilities 
+    w=np.where(P_mem>=p_lim)
+    galid2=galid[w]
+    hostid2=hostID[w]
+    prad2=P_radial[w]
+    pz2=P_redshift[w]
+    galgr02=gr0[w]
+    
+    restalpha_r.shape=(restalpha_r.size,)
+    restalpha_b.shape=(restalpha_b.size,)
+    #restPcolor=(restalpha_r*restPred)+(restalpha_b*restPblue)
+    #restPcolor_numerator=((restalpha_r*restPred) + (restalpha_b*restPblue))*rest_n_subtracted
+    #restPcolor_denominator=restPcolor_numerator + rest_n_background
+    #restPcolor=restPcolor_numerator/restPcolor_denominator
+    restpc2=np.array([item for sublist in restPcolor for item in sublist])
+    restpc2.shape=(restpc2.size,)
+    restPred=np.array([item for sublist in restPred for item in sublist])
+    restPred.shape=(restPred.size,)
+    restPblue=np.array([item for sublist in restPblue for item in sublist])
+    restPblue.shape=(restPblue.size,)
+    
+    
+    ######WRITING OUTPUT FILES######
+    restPmemb=restpc2*prad2*pz2
+    
+    print 'writing member file'
+    
+    col1=pyfits.Column(name='COADD_OBJECTS_ID',format='K',array=galid2)
+    col2=pyfits.Column(name='HOST_HALOID',format='J',array=hostid2)
+    col30=pyfits.Column(name='RESTP_RED',format='E',array=restPred)
+    col31=pyfits.Column(name='RESTP_BLUE',format='E',array=restPblue)
+    col33=pyfits.Column(name='REST_P_COLOR',format='E',array=restpc2)
+    col34=pyfits.Column(name='REST_P_MEMBER',format='E',array=restPmemb)
+    col35=pyfits.Column(name='GR0',format='E',array=galgr02)
+    
+    cols=pyfits.ColDefs([col1,col2,col30,col31,col33,col34,col35])
+    tbhdu=pyfits.BinTableHDU.from_columns(cols)
+    tbhdu.writeto(member_outfile,clobber=True)
+    
+    print 'writing cluster file'
+    
+    cluster_ID=np.array(cid)
+    cluster_Z=np.array(z)
+    
+    zeros=np.zeros_like(cluster_ID)
+    
+    
+    col1=pyfits.Column(name='MEM_MATCH_ID',format='J',array=cluster_ID)
+    col4=pyfits.Column(name='Z',format='E',array=cluster_Z)
+    col45=pyfits.Column(name='REST_SLOPE',format='E',array=restslope)
+    col46=pyfits.Column(name='REST_INTERCEPT',format='E',array=restyint)
+    col47=pyfits.Column(name='RESTMU_R',format='E',array=restmu_r)
+    col48=pyfits.Column(name='RESTMU_B',format='E',array=restmu_b)
+    col50=pyfits.Column(name='RESTSIGMA_R',format='E',array=restsigma_r)
+    col51=pyfits.Column(name='RESTSIGMA_B',format='E',array=restsigma_b)
+    col53=pyfits.Column(name='RESTW_R',format='E',array=restalpha_r)
+    col54=pyfits.Column(name='RESTW_B',format='E',array=restalpha_b)
+    
+    
+    cols=pyfits.ColDefs([col1,col4,col45,col46,col47,col48,col50,col51,col53,col54])
+    tbhdu=pyfits.BinTableHDU.from_columns(cols)
+    tbhdu.writeto(cluster_outfile,clobber=True)
+    
+    print 'success!!'
+    print " and there was great rejoicing!"
+
+
+
+
+
 # the second return vector is used to make the host_id vector
 # for the galaxies in the annulus. The first return is the
 # indicies  in the galaxy vector for thos galxies in the annulus
@@ -1138,7 +1298,7 @@ def annulus_match(ra_cluster,dec_cluster,ang_diam_dist,ra_galaxy,dec_galaxy,r_in
     return indicies_into_galaxies_in_annulus, indicies_into_clusters 
 
 #use host_id=indicies_into_clusters from previous function
-def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy,zg, zgerr, gmag, rmag, imag, zmag, gr0):#, gmagerr, rmagerr, imagerr) :
+def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy,zg, zgerr, gmag, rmag, imag, zmag):#, gmagerr, rmagerr, imagerr) :
 
     ra_galaxy = ra_galaxy[indices_into_galaxies]
     dec_galaxy = dec_galaxy[indices_into_galaxies]
@@ -1149,7 +1309,6 @@ def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy
     rmag=  rmag[indices_into_galaxies]
     imag=  imag[indices_into_galaxies]
     zmag=  zmag[indices_into_galaxies]
-    gr0= gr0[indices_into_galaxies]
 #    gmagerr=  gmagerr[indices_into_galaxies]
 #    rmagerr=  rmagerr[indices_into_galaxies]
 #    imagerr=  imagerr[indices_into_galaxies]
@@ -1164,7 +1323,6 @@ def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy
     data["rmag"] = rmag
     data["imag"] = imag
     data["zmag"] = zmag
-    data["gr0"] = gr0
 #    data["gmagerr"] = gmagerr
 #    data["rmagerr"] = rmagerr
 #    data["imagerr"] = imagerr
@@ -1216,14 +1374,13 @@ def Aeff_integrand(R,R200,n_total,n_bg,const):
     p=np.where(R>Rcore,2*np.pi*R*radial_probability(R,R200,n_total,n_bg,const),2*np.pi*Rcore*radial_probability(Rcore,R200,n_total,n_bg,const))
     return p
 
-def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zmag,restcolor,pz,n_total,n_bg,const):
+def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zmag,pz,n_total,n_bg,const):
     area_annulus=(np.pi*r_out**2.)-(np.pi*r_in**2.)
     hist_bins=np.arange(-1,4.1,0.1)
     m1uniq=np.arange(ang_diam_dist.size).astype(int)
     gr_hists=[]
     ri_hists=[]
     iz_hists=[]
-    rest_hists=[]
     for x in m1uniq:
         area_effective,err=integrate.quad(Aeff_integrand,0,R200[x],args=(R200[x],n_total[x],n_bg[x],const[x]))
         scale=area_effective/area_annulus
@@ -1235,7 +1392,6 @@ def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zma
         rmag1=rmag[w]
         imag1=imag[w]
         zmag1=zmag[w]
-        restcolor1=restcolor[w]
         pz1=pz[x]
         gr=gmag1-rmag1
         ri=rmag1-imag1
@@ -1243,16 +1399,13 @@ def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zma
         gr_h,gr_e=np.histogram(gr,bins=hist_bins,weights=pz1)
         ri_h,ri_e=np.histogram(ri,bins=hist_bins,weights=pz1)
         iz_h,iz_e=np.histogram(iz,bins=hist_bins,weights=pz1)
-        rest_h,rest_e=np.histogram(restcolor1,bins=hist_bins,weights=pz1)
         gr_hists.append(gr_h*scale)
         ri_hists.append(ri_h*scale)
         iz_hists.append(iz_h*scale)
-        rest_hists.append(rest_h*scale)
     gr_hists=np.array(gr_hists)
     ri_hists=np.array(ri_hists)
     iz_hists=np.array(iz_hists)
-    rest_hists=np.array(rest_hists)
-    return gr_hists, ri_hists, iz_hists, rest_hists
+    return gr_hists, ri_hists, iz_hists
 
 def background_galaxy_density(total,r_in,r_out):
 #    vol_in=(4./3.)*np.pi*(r_in**3)
@@ -1552,17 +1705,9 @@ def gmmfit(color,band2,interp,background_histograms,r_cl,maxcol,cluster_ID,clust
 #        find expected RS color
         zcl=cluster_Z[np.where(cluster_ID==x)]
         rcl=r_cl[np.where(cluster_ID==x)]
-        #qpt=zip(zcl,np.zeros_like(zcl))
-        #d,ind=tree.query(qpt)
         expred=interp(zcl)#expcol[ind]
-#        Find background histogram for subtraction
-#        d2,ind2=zhist_tree.query(qpt)
-#        bg_hist=bg_col_hist[ind2]
         bg_hist=background_histograms[cluster_ID==x]
         if len(glxid) >= 3:
-            #gr1.shape=(len(gr1),1)
-            #distprob.shape=(len(distprob),1)
-#            fit=gmm.fit(gr1)#,data_weights=distprob)
             colfit,colweights,n_subtracted=background_subtract(gr1,rprob1,zprob1,bg_hist)
             try:
                 fit=gmm.fit(colfit,data_weights=colweights)
@@ -1639,29 +1784,36 @@ def gmmfit(color,band2,interp,background_histograms,r_cl,maxcol,cluster_ID,clust
 #            exbg=-((gr1-mubg)**2)/(2*(sigbg**2))
             L_red=(1/(sigr*np.sqrt(2*np.pi)))*np.exp(exr)
             L_blue=(1/(sigb*np.sqrt(2*np.pi)))*np.exp(exb)
-            p_red_numerator=(alphar*L_red)*n_subtracted
-            #print 'numerator',p_red_numerator
-            p_red_denominator=p_red_numerator + bg_hist[0].sum()
-            #print 'denominator',p_red_denominator
+            #calculate number of background galaxies/cluster galaxies as a function of color:
+            bg_interp=interp1d(center,bg_hist)
+            colfit.shape=(len(colfit),)
+            colweights.shape=(len(colweights),)
+            Nsub_interp=interp1d(colfit,colweights)
+            #calculate red/blue probabilities (see overleaf section 3.4)
+            p_red_numerator=(alphar*L_red)*Nsub_interp(color1)
+            p_red_denominator=((alphar*L_red))*Nsub_interp(color1) + bg_interp(color1)
             p_red=p_red_numerator/p_red_denominator
-            #print 'pred',p_red
-            p_blue_numerator=(alphab*L_blue)*n_subtracted
-            p_blue_denominator=p_blue_numerator + bg_hist[0].sum()
+            p_red.shape=(len(p_red[0]),)
+            p_blue_numerator=(alphab*L_blue)*Nsub_interp(color1)
+            p_blue_denominator=((alphab*L_blue))*Nsub_interp(color1) + bg_interp(color1)
             p_blue=p_blue_numerator/p_blue_denominator
-#            p_bg=(1/(sigbg*np.sqrt(2*np.pi)))*np.exp(exbg)
-            maxLred=(1/(sigr*np.sqrt(2*np.pi)))
-            maxLblue=(1/(sigb*np.sqrt(2*np.pi)))
-#            maxLbg=(1/(sigbg*np.sqrt(2*np.pi)))
-            #Pred.append(p_red)
-            #Pblue.append(p_blue)
+            p_blue.shape=(len(p_blue[0]),)
+            #calculate color probabilities for each galaxy (see overleaf section 3.4)
+            p_color_numerator=((alphab*L_blue)+(alphar*L_red))*Nsub_interp(color1)
+            p_color_denominator=((alphab*L_blue)+(alphar*L_red))*Nsub_interp(color1) + bg_interp(color1)
+            p_color=p_color_numerator/p_color_denominator
+            p_color.shape=(len(p_color[0]),)
+            #Save color probabilities, prob = -1 if galaxy was cut out by color-specific crazy color cuts
             goodvals=np.where(color0<maxcol)
             tmp_Pred=(-1.)*np.ones_like(color0)
             tmp_Pred[goodvals]=p_red
             tmp_Pblue=(-1.)*np.ones_like(color0)
             tmp_Pblue[goodvals]=p_blue
+            tmp_Pcolor=(-1.)*np.ones_like(color0)
+            tmp_Pcolor[goodvals]=p_color
             Pred.append(tmp_Pred)
             Pblue.append(tmp_Pblue)
-#            Pbg.append(p_bg/maxLbg)
+            Pcolor.append(tmp_Pcolor)
             probgalid.append(glxid0)
             magr1.shape=(len(magr1),)
             gr1.shape=(len(gr1),)
@@ -1744,7 +1896,7 @@ def gmmfit(color,band2,interp,background_histograms,r_cl,maxcol,cluster_ID,clust
     converged=np.array(converged)
     p=np.array([p0,p1,p2,p3,p4,p5])
     q=np.array([q0,q1,q2,q3,q4,q5])
-    return slope,yint,mu_r,mu_b,mu_bg,sigma_r,sigma_b,sigma_bg,alpha_r,alpha_b,alpha_bg,Pred,Pblue,p_bg,probgalid,converged,bg_hist,colfit_final,colweights_final,n_subtracted#,colfit2,colweights2,colfit3,colweights3
+    return slope,yint,mu_r,mu_b,mu_bg,sigma_r,sigma_b,sigma_bg,alpha_r,alpha_b,alpha_bg,Pred,Pblue,Pcolor,probgalid,converged,bg_hist,colfit_final,colweights_final,n_subtracted#,colfit2,colweights2,colfit3,colweights3
 
 
 '''
