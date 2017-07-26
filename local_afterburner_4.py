@@ -20,7 +20,7 @@ def nike(a,b) :
     bb=b-1
 
     # The input catalogs should be configured in the following way:
-    # 1) The DES footprint encompasses the the RA 0-359 degree bridge,
+    # 1) The DES footprint encompasses the RA 0-359 degree bridge,
     #    giving rise to discontinuity issues in the following code. 
     #    Therefore, it's necessary to shift the RA's of the cluster
     #    and galaxy catalogs to be centered on 0 degrees or [-180,180]
@@ -49,18 +49,18 @@ def nike(a,b) :
         #galfile2=gal_indir+'y1a1_bpz_mof_S82_allcolumns.fits'
         #colorfile=color_indir+'red_galaxy_El1_COSMOS_DES_filters.txt'
         #zfile=zdir+'bpz_median_z_sigma.txt'
-        clusterfile='/data/des41.a/data/marcelle/clusters/Memb-assign/sims/mockcluster_800_904.fits'
-        galfile='/data/des41.a/data/marcelle/clusters/Memb-assign/sims/y1a1_gold_bpz_mof_fullarea_CUT_allcolumns_cutarea_mockcluster_800_904.fits'
+        clusterfile= cluster_indir + 'redmapper_v6.4.11_subsample_RA3545_DEC5548.fits'#'/data/des41.a/data/marcelle/clusters/Memb-assign/sims/mockcluster_800_904.fits'
+        galfile= gal_indir + 'y1a1_gold_bpz_mof_subsample_RA3446_DEC5647_CUT_allcolumns.fits'#'/data/des41.a/data/marcelle/clusters/Memb-assign/sims/y1a1_gold_bpz_mof_fullarea_CUT_allcolumns_cutarea_mockcluster_800_904.fits'
     #galfile2=gal_indir+'y1a1_bpz_mof_S82_allcolumns.fits'
         colorfile=color_indir+'red_galaxy_El1_COSMOS_DES_filters.txt'
         zfile=zdir+'bpz_median_z_sigma.txt'
     
     #outputs
-        outdir='/data/des41.a/data/bwelch/clusters/mocks'
+        outdir='/data/des40.a/data/jburgad/clusters/outputs_brian/'
         #cluster_outfile=outdir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test05_clusters.fit'
-        cluster_outfile='test_c.fit'
+        cluster_outfile= outdir + 'subsample_RA3545_DEC5548_merged_clusters.fit'
         #member_outfile=outdir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test05_members.fit'
-        member_outfile='test_m.fit'
+        member_outfile= outdir + 'subsample_RA3545_DEC5548_merged_members.fit'
         #print 'Output Directory:',outdir
      
     #read in data
@@ -307,7 +307,7 @@ def nike(a,b) :
     
     indices_into_galaxies,indices_into_clusters=annulus_match(rac,decc,ang_diam_dist,rag,decg,r_in=4.,r_out=6.)
     
-    data=make_annuli_quantities(indices_into_galaxies,indices_into_clusters,rag,decg,zg,zgerr,magg,magr,magi,magz,gr0)
+    data=make_annuli_quantities(indices_into_galaxies,indices_into_clusters,rag,decg,zg,zgerr,magg,magr,magi,magz)
     
     gmag=data['gmag']
     rmag=data['rmag']
@@ -450,7 +450,7 @@ def nike(a,b) :
         massdense=mass_density[i]
         x=clusterid[i]
         cidsave.append(x)
-        if 'NGALS' in globals():
+        if 'NGALS' in locals():
             c_ngals=NGALS[np.where(cid==x)]
             if c_ngals.size == 0:
                 c_ngals=np.array([0])
@@ -512,9 +512,9 @@ def nike(a,b) :
     
     R200_measure=np.array(R200_measure)
     M200_measure=np.array(M200_measure)
-    if 'lambda_ngals' in globals():
+    if 'lambda_ngals' in locals():
         lambda_ngals=np.array(lambda_ngals)
-    if 'R_lambda' in globals():
+    if 'R_lambda' in locals():
         R_lambda=np.array(R_lambda)
     cidsave=np.array(cidsave)
     redshift=np.array(redshift)
@@ -697,10 +697,9 @@ def nike(a,b) :
     z_gal=data['zg']
     z_gal_err=data['zgerr']
     host_id=data['host_id']
-    gr0_bg=data['gr0']
     
     
-    gr_hists,ri_hists,iz_hists,rest_hists=local_bg_histograms(ang_diam_dist,R200_measure,4.,6.,host_id,gmag,rmag,imag,zmag,gr0_bg,bg_probz,n_total,bg_total,constants)
+    gr_hists,ri_hists,iz_hists=local_bg_histograms(ang_diam_dist,R200_measure,4.,6.,host_id,gmag,rmag,imag,zmag,bg_probz,n_total,bg_total,constants)
     
     
     print 
@@ -720,7 +719,6 @@ def nike(a,b) :
     interp_gr=interp1d(jimz,jimgr)
     interp_ri=interp1d(jimz,jimri)
     interp_iz=interp1d(jimz,jimiz)
-    interp_rest=interp1d(jimz,jimgr[0]*np.ones_like(jimgr))
     #treedata=zip(jimz,np.zeros_like(jimz))
     #tree=spatial.KDTree(treedata)
     
@@ -1046,7 +1044,7 @@ def nike(a,b) :
     col5=pyfits.Column(name='R200',format='E',array=R200)
     col6=pyfits.Column(name='M200',format='E',array=M200)
     col7=pyfits.Column(name='N200',format='E',array=N200)
-    if 'lambda_ngals' in globals():
+    if 'lambda_ngals' in locals():
         col8=pyfits.Column(name="LAMBDA_CHISQ",format='E',array=lambda_ngals)
     else:
         col8=pyfits.Column(name="LAMBDA_CHISQ",format='E',array=zeros)
@@ -1138,7 +1136,7 @@ def annulus_match(ra_cluster,dec_cluster,ang_diam_dist,ra_galaxy,dec_galaxy,r_in
     return indicies_into_galaxies_in_annulus, indicies_into_clusters 
 
 #use host_id=indicies_into_clusters from previous function
-def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy,zg, zgerr, gmag, rmag, imag, zmag, gr0):#, gmagerr, rmagerr, imagerr) :
+def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy,zg, zgerr, gmag, rmag, imag, zmag):#, gmagerr, rmagerr, imagerr) :
 
     ra_galaxy = ra_galaxy[indices_into_galaxies]
     dec_galaxy = dec_galaxy[indices_into_galaxies]
@@ -1149,7 +1147,6 @@ def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy
     rmag=  rmag[indices_into_galaxies]
     imag=  imag[indices_into_galaxies]
     zmag=  zmag[indices_into_galaxies]
-    gr0= gr0[indices_into_galaxies]
 #    gmagerr=  gmagerr[indices_into_galaxies]
 #    rmagerr=  rmagerr[indices_into_galaxies]
 #    imagerr=  imagerr[indices_into_galaxies]
@@ -1164,7 +1161,6 @@ def make_annuli_quantities(indices_into_galaxies, host_id, ra_galaxy, dec_galaxy
     data["rmag"] = rmag
     data["imag"] = imag
     data["zmag"] = zmag
-    data["gr0"] = gr0
 #    data["gmagerr"] = gmagerr
 #    data["rmagerr"] = rmagerr
 #    data["imagerr"] = imagerr
@@ -1216,14 +1212,13 @@ def Aeff_integrand(R,R200,n_total,n_bg,const):
     p=np.where(R>Rcore,2*np.pi*R*radial_probability(R,R200,n_total,n_bg,const),2*np.pi*Rcore*radial_probability(Rcore,R200,n_total,n_bg,const))
     return p
 
-def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zmag,restcolor,pz,n_total,n_bg,const):
+def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zmag,pz,n_total,n_bg,const):
     area_annulus=(np.pi*r_out**2.)-(np.pi*r_in**2.)
     hist_bins=np.arange(-1,4.1,0.1)
     m1uniq=np.arange(ang_diam_dist.size).astype(int)
     gr_hists=[]
     ri_hists=[]
     iz_hists=[]
-    rest_hists=[]
     for x in m1uniq:
         area_effective,err=integrate.quad(Aeff_integrand,0,R200[x],args=(R200[x],n_total[x],n_bg[x],const[x]))
         scale=area_effective/area_annulus
@@ -1235,7 +1230,6 @@ def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zma
         rmag1=rmag[w]
         imag1=imag[w]
         zmag1=zmag[w]
-        restcolor1=restcolor[w]
         pz1=pz[x]
         gr=gmag1-rmag1
         ri=rmag1-imag1
@@ -1243,16 +1237,13 @@ def local_bg_histograms(ang_diam_dist,R200,r_in,r_out,host_id,gmag,rmag,imag,zma
         gr_h,gr_e=np.histogram(gr,bins=hist_bins,weights=pz1)
         ri_h,ri_e=np.histogram(ri,bins=hist_bins,weights=pz1)
         iz_h,iz_e=np.histogram(iz,bins=hist_bins,weights=pz1)
-        rest_h,rest_e=np.histogram(restcolor1,bins=hist_bins,weights=pz1)
         gr_hists.append(gr_h*scale)
         ri_hists.append(ri_h*scale)
         iz_hists.append(iz_h*scale)
-        rest_hists.append(rest_h*scale)
     gr_hists=np.array(gr_hists)
     ri_hists=np.array(ri_hists)
     iz_hists=np.array(iz_hists)
-    rest_hists=np.array(rest_hists)
-    return gr_hists, ri_hists, iz_hists, rest_hists
+    return gr_hists, ri_hists, iz_hists
 
 def background_galaxy_density(total,r_in,r_out):
 #    vol_in=(4./3.)*np.pi*(r_in**3)
