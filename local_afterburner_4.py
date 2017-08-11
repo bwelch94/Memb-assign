@@ -43,6 +43,7 @@ def nike(a=-1,b=-1,cluster_pix=-1,nside=32) :
     dataset='redmapper'
     p_lim=0.0
 
+    
     if dataset=='redmapper':
         cluster_indir= '/data/des40.a/data/jburgad/clusters/catalogs/'#'/data/des41.b/data/hlin/vt_redmapper/mock_clusters/'
         gal_indir= '/data/des40.a/data/jburgad/clusters/catalogs/'
@@ -55,10 +56,20 @@ def nike(a=-1,b=-1,cluster_pix=-1,nside=32) :
         galfile_rootname = '/data/des50.a/data/annis/mof_cat_for_clusters/healpix/y1a1_gold_bpz_mof_full_area_CUT_columns_y3a2_mof/y3a2_gold_bpz_mof_mags_' # For running on healpix data
 
     #outputs
+
         outdir='/data/des40.a/data/jburgad/clusters/outputs_brian/'
         cluster_outfile=outdir+'test_clusters.fit'
         member_outfile=outdir+'test_members.fit'
         print 'Output Directory:',outdir
+
+
+        outdir='/data/des41.a/data/bwelch/clusters/mocks'
+        #cluster_outfile=outdir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test05_clusters.fit'
+        cluster_outfile='800_904_marcelle_params_clusters.fit'
+        #member_outfile=outdir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test05_members.fit'
+        member_outfile='800_904_marcelle_params_members.fit'
+        #print 'Output Directory:',outdir
+     
 
     #read in data
         print 'Getting Data'
@@ -1119,6 +1130,9 @@ def nike(a=-1,b=-1,cluster_pix=-1,nside=32) :
 
 def nike_rf() :
 
+
+    bb=b-1
+
     ###FILE INFO###
     #inputs
     dataset='redmapper'
@@ -1139,19 +1153,39 @@ def nike_rf() :
         cluster_outfile=outdir+'mocks_900_1004_restframe_clusters.fit'
         member_outfile=outdir+'mocks_900_1004_restframe_members.fit'
 
+    
+    if dataset=='redmapper':
+        cluster_indir='/data/des41.a/data/marcelle/clusters/data/'
+        gal_indir='/data/des30.a/data/bwelch/redmapper_y1a1/'
+        color_indir='/data/des30.a/data/bwelch/redmapper_y1a1/'
+        clusterfile=cluster_indir+'redmapper_v6.4.11_subsample_RA3545_DEC5548_test04_clusters.fit'
+        galfile=gal_indir+'subsample_RA3545_DEC5548_test04_restframe_colors.fit'
+        colorfile=color_indir+'red_galaxy_El1_COSMOS_DES_filters.txt'
+    
+    #outputs
+        outdir='/data/des30.a/data/bwelch/redmapper_y1a1/restframe/'
+        cluster_outfile=outdir+'marcelle_subsample_restframe_clusters.fit'
+        member_outfile=outdir+'marcelle_subsample_restframe_members.fit'
+     
+
     #read in data
         print 'Getting Data'
         c=pyfits.open(clusterfile)
         c=c[1].data
         g=pyfits.open(galfile)
         g=g[1].data
+
         s=pyfits.open(smassfile)
         s=s[1].data
+
+
+     
 
         z=c.field('z')
         rac=c['ra']
         decc=c['dec']
         cid=c['mem_match_id']
+
 
         zg1=s['z']
         galid=s['id']
@@ -1165,16 +1199,35 @@ def nike_rf() :
         zmin=0.1
         zmax=1.0
 
+
+        zg1=g.field('z')
+        galid=g['id']
+    
+    #make cuts
+        new_rac=rac
+        iy=np.argsort(new_rac)
+        new_rac=new_rac[iy][a:b]
+        new_decc=decc[iy][a:b]
+
+        zmin=0.1
+        zmax=1.0
+     
+
         ra1=new_rac.min()
         ra2=new_rac.max()
         dec1=new_decc.min()
         dec2=new_decc.max()
+
+
+
+        
 
         w, = np.where((z>zmin) & (z<zmax) & (rac>=ra1) & (rac<=ra2) & (decc>=dec1) & (decc<=dec2))
         c1=c[w]
         rac=c1.field('ra')
         decc=c1.field('dec')
         cid=c1['mem_match_id']
+
 
         hostid=s['mem_match_id']
         w=np.where(np.in1d(hostid,cid))
@@ -1188,6 +1241,19 @@ def nike_rf() :
         cid=c1.field('MEM_MATCH_ID')
         R200_measure=c1['R200']
 
+        
+        hostid=g['mem_match_id']
+        w=np.where(np.in1d(hostid,cid))
+        g1=g[w]
+     
+        print 'total clusters: ',len(c1)
+        print 'total galaxies: ',len(g1)
+     
+        z=c1.field('z')
+        cid=c1.field('MEM_MATCH_ID')
+        R200_measure=c['R200']
+
+
         zg=g1.field('ZP')
         galid=g1.field('COADD_OBJECTS_ID')
         hostID=g1['host_haloid']
@@ -1199,6 +1265,7 @@ def nike_rf() :
         magerr_r=g1['MAGERR_AUTO_R']
         magerr_i=g1['MAGERR_AUTO_I']
         magerr_z=g1['MAGERR_AUTO_Z']
+
         gr0=s1.field('gr_o')
         #gr_pmem=s1['gr_p_member_2']
         #ri_pmem=s1['ri_p_member_2']
@@ -1208,6 +1275,20 @@ def nike_rf() :
 
     print
     print 'calculating GMM probabilities'
+
+
+        gr0=g1.field('gr_o')
+        gr_pmem=g1['gr_p_member_2']
+        ri_pmem=g1['ri_p_member_2']
+        iz_pmem=g1['iz_p_member_2']
+        P_radial=g['p_radial']
+        P_redshift=g['p_redshift']
+        
+        
+    print 
+    print 'calculating GMM probabilities'
+    
+    
 
     #pull expected color vs redshift data
     annis=np.loadtxt(colorfile)
@@ -1220,9 +1301,13 @@ def nike_rf() :
     
     hist_bins=np.arange(-1,4.1,0.1)
     
+
     #P_mem=(gr_pmem+ri_pmem+iz_pmem)/3.
     #P_mem=P_radial*P_redshift
     P_mem=s1['p_member']
+
+    P_mem=(gr_pmem+ri_pmem+iz_pmem)/3.
+
     
     restinfo=gmmfit(gr0,magr,interp_rest,None,R200_measure,4.,cid,z,galid,hostID,P_mem,0.)
     
@@ -1241,11 +1326,19 @@ def nike_rf() :
     restPblue=restinfo[12]
     restPcolor=restinfo[13]
     restprobgalid=restinfo[14]
+
     #restconverged=restinfo[15]
     #rest_bghist=restinfo[16]
     #rest_bghist_counts=rest_bghist[0]
     #rest_n_background=sum(rest_bghist_counts)
     #rest_n_subtracted=restinfo[19]
+
+    restconverged=restinfo[15]
+    rest_bghist=restinfo[16]
+    rest_bghist_counts=rest_bghist[0]
+    rest_n_background=sum(rest_bghist_counts)
+    rest_n_subtracted=restinfo[19]
+
 
 
     #Make cuts for galaxy membership probabilities 
@@ -1758,6 +1851,7 @@ def gmmfit(color,band2,interp,background_histograms,r_cl,maxcol,cluster_ID,clust
         zcl=cluster_Z[np.where(cluster_ID==x)]
         rcl=r_cl[np.where(cluster_ID==x)]
         expred=interp(zcl)#expcol[ind]
+
         if background_histograms==None:
             bg_hist=np.zeros_like(hist_bins)
             bg_hist=bg_hist[:-1]
@@ -1766,6 +1860,11 @@ def gmmfit(color,band2,interp,background_histograms,r_cl,maxcol,cluster_ID,clust
             bg_hist=background_histograms[cluster_ID==x]
         if len(glxid) >= 3:
             colfit,colweights,n_subtracted=background_subtract(gr1,distprob,bg_hist)
+
+        bg_hist=background_histograms[cluster_ID==x]
+        if len(glxid) >= 3:
+            colfit,colweights,n_subtracted=background_subtract(gr1,rprob1,zprob1,bg_hist)
+
             try:
                 fit=gmm.fit(colfit,data_weights=colweights)
                 conv=gmm.converged_
@@ -1858,6 +1957,19 @@ def gmmfit(color,band2,interp,background_histograms,r_cl,maxcol,cluster_ID,clust
             #calculate color probabilities for each galaxy (see overleaf section 3.4)
             p_color_numerator=((alphab*L_blue)+(alphar*L_red))*n_subtracted#Nsub_interp(color1)
             p_color_denominator=((alphab*L_blue)+(alphar*L_red))*n_subtracted + bg_interp(color1)#Nsub_interp(color1) + bg_interp(color1)
+            Nsub_interp=interp1d(colfit,colweights)
+            #calculate red/blue probabilities (see overleaf section 3.4)
+            p_red_numerator=(alphar*L_red)*Nsub_interp(color1)
+            p_red_denominator=((alphar*L_red))*Nsub_interp(color1) + bg_interp(color1)
+            p_red=p_red_numerator/p_red_denominator
+            p_red.shape=(len(p_red[0]),)
+            p_blue_numerator=(alphab*L_blue)*Nsub_interp(color1)
+            p_blue_denominator=((alphab*L_blue))*Nsub_interp(color1) + bg_interp(color1)
+            p_blue=p_blue_numerator/p_blue_denominator
+            p_blue.shape=(len(p_blue[0]),)
+            #calculate color probabilities for each galaxy (see overleaf section 3.4)
+            p_color_numerator=((alphab*L_blue)+(alphar*L_red))*Nsub_interp(color1)
+            p_color_denominator=((alphab*L_blue)+(alphar*L_red))*Nsub_interp(color1) + bg_interp(color1)
             p_color=p_color_numerator/p_color_denominator
             p_color.shape=(len(p_color[0]),)
             #Save color probabilities, prob = -1 if galaxy was cut out by color-specific crazy color cuts
@@ -1954,6 +2066,9 @@ def gmmfit(color,band2,interp,background_histograms,r_cl,maxcol,cluster_ID,clust
     p=np.array([p0,p1,p2,p3,p4,p5])
     q=np.array([q0,q1,q2,q3,q4,q5])
     return slope,yint,mu_r,mu_b,mu_bg,sigma_r,sigma_b,sigma_bg,alpha_r,alpha_b,alpha_bg,Pred,Pblue,Pcolor,probgalid,converged,bg_hist#,colfit,colweights,n_subtracted#,colfit2,colweights2,colfit3,colweights3
+
+    return slope,yint,mu_r,mu_b,mu_bg,sigma_r,sigma_b,sigma_bg,alpha_r,alpha_b,alpha_bg,Pred,Pblue,Pcolor,probgalid,converged,bg_hist,colfit_final,colweights_final,n_subtracted#,colfit2,colweights2,colfit3,colweights3
+
 
 
 '''
